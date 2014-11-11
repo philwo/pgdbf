@@ -99,14 +99,14 @@ int main(int argc, char **argv) {
     char    optvalidargs[sizeof(STANDARDOPTS) + 3];
 
     /* Default values for command line options */
-    int     optnumericasnumeric = 1;
-    int     optshowprogress = 0;
-    int     optusecreatetable = 1;
-    int     optusedroptable = 1;
-    int     optuseifexists = 1;
-    int     optusequotedtablename = 0;
-    int     optusetransaction = 1;
-    int     optusetruncatetable = 0;
+    int optnumericasnumeric = 1;
+    int optshowprogress = 0;
+    int optusecreatetable = 1;
+    int optusedroptable = 1;
+    int optuseifexists = 1;
+    int optusequotedtablename = 0;
+    int optusetransaction = 1;
+    int optusetruncatetable = 0;
 
     /* Describing the PostgreSQL table */
     char *tablename;
@@ -283,6 +283,7 @@ int main(int argc, char **argv) {
     if(tablename == NULL) {
         exitwitherror("Unable to allocate the tablename buffer", 1);
     }
+
     /* The "bare" version of the tablename is the one used by itself in
      * lines line CREATE TABLE [...], etc. Compare this with tablename which
      * is used for other things, like creating the names of indexes. Despite
@@ -292,6 +293,7 @@ int main(int argc, char **argv) {
     if(baretablename == NULL) {
         exitwitherror("Unable to allocate the bare tablename buffer", 1);
     }
+
     /* Find the first character after the final slash, or the first
      * character of the filename if no slash is present, and copy from that
      * point to the period in the extension into the tablename string. */
@@ -301,10 +303,13 @@ int main(int argc, char **argv) {
             break;
         }
     }
+
     /* Create tablename and baretablename at the same time. */
     t = tablename;
     u = baretablename;
-    if(optusequotedtablename) *u++ = '"';
+    if(optusequotedtablename) {
+        *u++ = '"';
+    }
     while(*s) {
         if(*s == '.') {
             break;
@@ -313,7 +318,9 @@ int main(int argc, char **argv) {
         *u++ = *t;
         t++;
     }
-    if(optusequotedtablename) *u++ = '"';
+    if(optusequotedtablename) {
+        *u++ = '"';
+    }
     *t = '\0';
     *u = '\0';
 
@@ -499,16 +506,18 @@ int main(int argc, char **argv) {
      * for a few additional output parameters.  This is an ugly loop that
      * does lots of stuff, but extracting it into two or more loops with the
      * same structure and the same switch-case block seemed even worse. */
-    if(optusecreatetable) printf("CREATE TABLE %s (", baretablename);
+    if(optusecreatetable) {
+        printf("CREATE TABLE %s (", baretablename);
+    }
     printed = 0;
     for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
         if(fields[fieldnum].type == '0') {
             continue;
         }
+
         if(printed && optusecreatetable) {
-            if(optusecreatetable) printf(", ");
-        }
-        else {
+            printf(", ");
+        } else {
             printed = 1;
         }
 
@@ -617,10 +626,12 @@ int main(int argc, char **argv) {
     if(!dbfbatchsize) {
         dbfbatchsize = 1;
     }
+
     inputbuffer = malloc(littleint16_t(dbfheader.recordlength) * dbfbatchsize);
     if(inputbuffer == NULL) {
         exitwitherror("Unable to malloc a record buffer", 1);
     }
+
     outputbuffer = malloc(longestfield + 1);
     if(outputbuffer == NULL) {
         exitwitherror("Unable to malloc the output buffer", 1);
@@ -632,6 +643,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Progress: 0");
         fflush(stderr);
     }
+
     for(recordbase = 0; recordbase < littleint32_t(dbfheader.recordcount); recordbase += dbfbatchsize) {
         blocksread = fread(inputbuffer, littleint16_t(dbfheader.recordlength), dbfbatchsize, dbffile);
         if(blocksread != dbfbatchsize &&
