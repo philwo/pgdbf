@@ -31,7 +31,7 @@
 
 #include "pgdbf.h"
 
-#define STANDARDOPTS "cCdDeEhm:nNpPqQtTuU"
+#define STANDARDOPTS "cCdDeEhm:nNpPqQtTuUwWxX"
 
 void printFieldNames(char (*fieldnames)[MAXCOLUMNNAMESIZE], int fieldnum, char *tablename) {
     int i;
@@ -243,9 +243,9 @@ int main(int argc, char **argv) {
     if(optexitcode != -1) {
         printf(
 #if defined(HAVE_ICONV)
-               "Usage: %s [-cCdDeEhtTuU] [-s encoding] [-m memofilename] filename [indexcolumn ...]\n"
+               "Usage: %s [-cCdDeEhtTuUwWxX] [-s encoding] [-m memofilename] filename [indexcolumn ...]\n"
 #else
-               "Usage: %s [-cCdDeEhtTuU] [-m memofilename] filename [indexcolumn ...]\n"
+               "Usage: %s [-cCdDeEhtTuUwWxX] [-m memofilename] filename [indexcolumn ...]\n"
 #endif
                "Convert the named XBase file into PostgreSQL format\n"
                "\n"
