@@ -126,6 +126,7 @@ int main(int argc, char **argv) {
     int optusetransaction = 1;
     int optusetruncatetable = 0;
     int optcopyusenamedcolumns = 0;
+    int optoutputemptystringasnull = 0;
 
     /* Describing the PostgreSQL table */
     char *tablename;
@@ -218,6 +219,12 @@ int main(int argc, char **argv) {
         case 'W':
             optcopyusenamedcolumns = 0;
             break;
+        case 'x':
+            optoutputemptystringasnull = 1;
+            break;
+        case 'X':
+            optoutputemptystringasnull = 0;
+            break;
         case 'h':
         default:
             /* If we got here because someone requested '-h', exit
@@ -265,6 +272,8 @@ int main(int argc, char **argv) {
                "  -U  do not issue a 'TRUNCATE' command before inserting data (default)\n"
                "  -w  issue a 'COPY' statement including column names to insert the data\n"
                "  -W  issue a 'COPY' statement without column names to insert the data (default)\n"
+               "  -x  output empty strings in the input as NULL values in SQL\n"
+               "  -X  output empty strings in the input as empty strings in SQL (default)\n"
                "\n"
 #if defined(HAVE_ICONV)
                "If you don't specify an encoding via '-s', the data will be printed as is.\n"
@@ -707,7 +716,10 @@ int main(int argc, char **argv) {
                     break;
                 case 'C':
                     /* Varchars */
-                    safeprintbuf(bufoffset, fields[fieldnum].length);
+                    if(!safeprintbuf(bufoffset, fields[fieldnum].length)
+                       && optoutputemptystringasnull) {
+                        printf("\\N");
+                    }
                     break;
                 case 'D':
                     /* Datestamps */
@@ -776,9 +788,15 @@ int main(int argc, char **argv) {
                         memorecord = memomap + memorecordoffset;
                         if(memofileisdbase3) {
                             t = strchr(memorecord, 0x1A);
-                            safeprintbuf(memorecord, t - memorecord);
+                            if(!safeprintbuf(memorecord, t - memorecord)
+                               && optoutputemptystringasnull) {
+                                printf("\\N");
+                            }
                         } else {
-                            safeprintbuf(memorecord + 8, sbigint32_t(memorecord + 4));
+                            if(!safeprintbuf(memorecord + 8, sbigint32_t(memorecord + 4))
+                               && optoutputemptystringasnull) {
+                                printf("\\N");
+                            }
                         }
                     }
                     break;

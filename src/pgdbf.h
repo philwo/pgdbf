@@ -248,7 +248,7 @@ static void exitwitherror(const char *message, const int systemerror) {
     exit(EXIT_FAILURE);
 }
 
-static void safeprintbuf(const char *buf, const size_t inputsize) {
+static int safeprintbuf(const char *buf, const size_t inputsize) {
     /* Print a string, insuring that it's fit for use in a tab-delimited
      * text file */
     char       *convbuf;
@@ -260,7 +260,7 @@ static void safeprintbuf(const char *buf, const size_t inputsize) {
 
     /* Shortcut for empty strings */
     if(*buf == '\0') {
-        return;
+        return 0;
     }
 
     /* Find the rightmost non-space, non-null character */
@@ -272,7 +272,7 @@ static void safeprintbuf(const char *buf, const size_t inputsize) {
 
     /* If there aren't any non-space characters, skip the output part */
     if(s < buf) {
-        return;
+        return 0;
     }
 
     lastchar = s;
@@ -332,6 +332,8 @@ static void safeprintbuf(const char *buf, const size_t inputsize) {
     if(targetbuf != staticbuf) {
         free(targetbuf);
     }
+
+    return 1;
 }
 
 int progressdots = 1;
