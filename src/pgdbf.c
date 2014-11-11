@@ -33,6 +33,25 @@
 
 #define STANDARDOPTS "cCdDeEhm:nNpPqQtTuU"
 
+void printFieldNames(char (*fieldnames)[MAXCOLUMNNAMESIZE], int fieldnum, char *tablename) {
+    int i;
+    int isreservedname;
+
+    /* If the fieldname is a reserved word, rename it to start with
+     * "tablename_" */
+    isreservedname = 0;
+    for(i = 0; RESERVEDWORDS[i]; i++ ) {
+        if(!strcmp(fieldnames[fieldnum], RESERVEDWORDS[i])) {
+            printf("%s_%s", tablename, fieldnames[fieldnum]);
+            isreservedname = 1;
+            break;
+        }
+    }
+    if(!isreservedname) {
+        printf("%s", fieldnames[fieldnum]);
+    }
+}
+
 int main(int argc, char **argv) {
     /* Describing the DBF file */
     char          *dbffilename;
@@ -77,7 +96,6 @@ int main(int argc, char **argv) {
     int  lastcharwasreplaced = 0;
     int     i;
     int     j;
-    int     isreservedname;
     int     printed;
     size_t  blocksread;
     size_t  longestfield = 32;  /* Make sure we leave at least enough room
@@ -107,6 +125,7 @@ int main(int argc, char **argv) {
     int optusequotedtablename = 0;
     int optusetransaction = 1;
     int optusetruncatetable = 0;
+    int optcopyusenamedcolumns = 0;
 
     /* Describing the PostgreSQL table */
     char *tablename;
@@ -193,6 +212,12 @@ int main(int argc, char **argv) {
         case 'U':
             optusetruncatetable = 0;
             break;
+        case 'w':
+            optcopyusenamedcolumns = 1;
+            break;
+        case 'W':
+            optcopyusenamedcolumns = 0;
+            break;
         case 'h':
         default:
             /* If we got here because someone requested '-h', exit
@@ -238,6 +263,8 @@ int main(int argc, char **argv) {
                "  -T  do not use an enclosing transaction\n"
                "  -u  issue a 'TRUNCATE' command before inserting data\n"
                "  -U  do not issue a 'TRUNCATE' command before inserting data (default)\n"
+               "  -w  issue a 'COPY' statement including column names to insert the data\n"
+               "  -W  issue a 'COPY' statement without column names to insert the data (default)\n"
                "\n"
 #if defined(HAVE_ICONV)
                "If you don't specify an encoding via '-s', the data will be printed as is.\n"
@@ -450,7 +477,7 @@ int main(int argc, char **argv) {
     /* Uniqify the XBase field names. It's possible to have multiple fields
      * with the same name, but PostgreSQL correctly considers that an error
      * condition. */
-    if(optusecreatetable) {
+    if(optusecreatetable || optcopyusenamedcolumns) {
         fieldnames = calloc(fieldcount, MAXCOLUMNNAMESIZE);
         if(fieldnames == NULL) {
             exitwitherror("Unable to allocate the columnname uniqification buffer", 1);
@@ -522,17 +549,7 @@ int main(int argc, char **argv) {
         }
 
         if(optusecreatetable) {
-            /* If the fieldname is a reserved word, rename it to start with
-             * "tablename_" */
-            isreservedname = 0;
-            for(i = 0; RESERVEDWORDS[i]; i++ ) {
-                if(!strcmp(fieldnames[fieldnum], RESERVEDWORDS[i])) {
-                    printf("%s_%s ", tablename, fieldnames[fieldnum]);
-                    isreservedname = 1;
-                    break;
-                }
-            }
-            if(!isreservedname) printf("%s ", fieldnames[fieldnum]);
+            printFieldNames(fieldnames, fieldnum, tablename);
         }
 
         switch(fields[fieldnum].type) {
@@ -620,7 +637,26 @@ int main(int argc, char **argv) {
     }
 
     /* Get PostgreSQL ready to receive lots of input */
-    printf("\\COPY %s FROM STDIN\n", baretablename);
+    printf("\\COPY %s ", baretablename);
+    if (optcopyusenamedcolumns) {
+        printf("(");
+        printed = 0;
+        /* Loop through all the fields */
+        for(fieldnum = 0; fieldnum < fieldcount; fieldnum++) {
+            if(fields[fieldnum].type == '0') {
+                continue;
+            }
+            if(printed) {
+                printf(", ");
+            }
+            else {
+                printed = 1;
+            }
+            printFieldNames(fieldnames, fieldnum, tablename);
+        }
+        printf(") ");
+    }
+    printf("FROM STDIN\n");
 
     dbfbatchsize = DBFBATCHTARGET / littleint16_t(dbfheader.recordlength);
     if(!dbfbatchsize) {
