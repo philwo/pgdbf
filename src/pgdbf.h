@@ -248,7 +248,7 @@ static void exitwitherror(const char *message, const int systemerror) {
     exit(EXIT_FAILURE);
 }
 
-static int safeprintbuf(const char *buf, const size_t inputsize) {
+static int safeprintbuf(const char *buf, const size_t inputsize, const int trimpadding) {
     /* Print a string, insuring that it's fit for use in a tab-delimited
      * text file */
     char       *convbuf;
@@ -263,16 +263,22 @@ static int safeprintbuf(const char *buf, const size_t inputsize) {
         return 0;
     }
 
-    /* Find the rightmost non-space, non-null character */
-    for(s = buf + inputsize - 1; s >= buf; s--) {
-        if(*s != ' ' && *s != '\0') {
-            break;
+    /* Remove padding added to fixed size fields */
+    if(trimpadding) {
+        /* Find the rightmost non-space, non-null character */
+        for(s = buf + inputsize - 1; s >= buf; s--) {
+            if(*s != ' ' && *s != '\0') {
+                break;
+            }
+        }
+
+        /* If there aren't any non-space characters, skip the output part */
+        if(s < buf) {
+            return 0;
         }
     }
-
-    /* If there aren't any non-space characters, skip the output part */
-    if(s < buf) {
-        return 0;
+    else {
+        s = buf + inputsize - 1;
     }
 
     lastchar = s;
